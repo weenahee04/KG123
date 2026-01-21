@@ -5,14 +5,16 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type TabView = 'dashboard' | 'members' | 'finance' | 'bets' | 'lotto-sys' | 'affiliate' | 'results' | 'settings';
+type TabView = 'dashboard' | 'members' | 'finance' | 'bets' | 'lotto-sys' | 'affiliate' | 'api-system' | 'results' | 'settings';
 type LottoSubTab = 'gov' | 'yiki' | 'stock' | 'config';
 type AffiliateSubTab = 'overview' | 'tree' | 'logs' | 'fraud' | 'rates';
+type ApiSubTab = 'lotto-api' | 'bank-api';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<TabView>('dashboard');
   const [lottoSubTab, setLottoSubTab] = useState<LottoSubTab>('gov');
   const [affSubTab, setAffSubTab] = useState<AffiliateSubTab>('overview');
+  const [apiSubTab, setApiSubTab] = useState<ApiSubTab>('lotto-api');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // --- STATE FOR GOV LOTTO ---
@@ -223,18 +225,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const renderConfig = () => (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="font-bold text-lg text-gray-800 mb-6 border-b pb-2">ตั้งค่าระบบหวย / คืนโพย</h3>
-          
           <div className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded">
-                  <div>
-                      <h4 className="font-bold text-red-800">ระบบคืนโพย (Refund System)</h4>
-                      <p className="text-xs text-red-600">ใช้สำหรับกรณียกเลิกการออกผลรางวัล หรือระบบมีปัญหา</p>
-                  </div>
-                  <button className="bg-red-600 text-white text-sm font-bold px-4 py-2 rounded hover:bg-red-700 shadow">
-                      เข้าสู่เมนูคืนโพย
-                  </button>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">อัตราจ่ายมาตรฐาน (บาทละ)</label>
@@ -243,6 +234,151 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                   <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">ส่วนลดเปอร์เซ็นต์ (AF)</label>
                       <input type="number" defaultValue={8} className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-[#b08528]" />
+                  </div>
+              </div>
+          </div>
+      </div>
+  );
+
+  // --- API MANAGEMENT SYSTEM FUNCTIONS (NEW) ---
+
+  const renderLottoApi = () => (
+      <div className="space-y-6">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                      <span className="text-blue-500">📡</span> จัดการ Feed ผลรางวัล (Lotto API)
+                  </h3>
+                  <button className="bg-blue-600 text-white text-sm px-4 py-2 rounded shadow hover:bg-blue-700">
+                      + เพิ่ม Provider
+                  </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                      <thead className="bg-gray-100 text-gray-700 uppercase">
+                          <tr>
+                              <th className="px-4 py-3">Provider Name</th>
+                              <th className="px-4 py-3">Type</th>
+                              <th className="px-4 py-3">Endpoint URL</th>
+                              <th className="px-4 py-3">Last Sync</th>
+                              <th className="px-4 py-3 text-center">Status</th>
+                              <th className="px-4 py-3 text-center">Action</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                          <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 font-bold">GLO Official</td>
+                              <td className="px-4 py-3"><span className="bg-gray-200 px-2 py-1 rounded text-xs">Government</span></td>
+                              <td className="px-4 py-3 text-gray-500 font-mono text-xs">https://api.glo.or.th/v1/latest</td>
+                              <td className="px-4 py-3">10 mins ago</td>
+                              <td className="px-4 py-3 text-center"><span className="w-3 h-3 bg-green-500 rounded-full inline-block"></span></td>
+                              <td className="px-4 py-3 text-center">
+                                  <button className="text-blue-600 hover:underline text-xs">Config</button>
+                              </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 font-bold">Yahoo Finance</td>
+                              <td className="px-4 py-3"><span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Stocks</span></td>
+                              <td className="px-4 py-3 text-gray-500 font-mono text-xs">https://query1.finance.yahoo.com/v8...</td>
+                              <td className="px-4 py-3">1 min ago</td>
+                              <td className="px-4 py-3 text-center"><span className="w-3 h-3 bg-green-500 rounded-full inline-block"></span></td>
+                              <td className="px-4 py-3 text-center">
+                                  <button className="text-blue-600 hover:underline text-xs">Config</button>
+                              </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 font-bold">Huay YiKi Randomizer</td>
+                              <td className="px-4 py-3"><span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">Internal</span></td>
+                              <td className="px-4 py-3 text-gray-500 font-mono text-xs">localhost:3000/api/yiki/gen</td>
+                              <td className="px-4 py-3">Realtime</td>
+                              <td className="px-4 py-3 text-center"><span className="w-3 h-3 bg-green-500 rounded-full inline-block"></span></td>
+                              <td className="px-4 py-3 text-center">
+                                  <button className="text-blue-600 hover:underline text-xs">Config</button>
+                              </td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+
+          <div className="bg-gray-800 text-white p-6 rounded-lg border border-gray-700">
+              <h4 className="font-bold mb-2">Debug Console (Latest Response)</h4>
+              <div className="bg-black p-4 rounded font-mono text-xs text-green-400 h-32 overflow-y-auto">
+                  {`{
+  "status": "success",
+  "source": "GLO_API",
+  "data": {
+      "date": "2026-01-17",
+      "first_prize": "878972",
+      "last_two": "02"
+  },
+  "timestamp": 1768634400
+}`}
+              </div>
+          </div>
+      </div>
+  );
+
+  const renderBankApi = () => (
+      <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Deposit Gateway */}
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <div className="flex justify-between items-center mb-4 border-b pb-2">
+                      <h3 className="font-bold text-lg text-green-700">ระบบฝากอัตโนมัติ (Deposit Gateway)</h3>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" defaultChecked />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                      </label>
+                  </div>
+                  
+                  <div className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">เลือกธนาคารหลัก (Main Gateway)</label>
+                          <select className="w-full border border-gray-300 rounded p-2 text-sm">
+                              <option>KBANK (K-Plus API)</option>
+                              <option>SCB (Easy App API)</option>
+                              <option>TrueWallet (Gift Envelope)</option>
+                          </select>
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Android SMS Gateway URL</label>
+                          <input type="text" className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-50" placeholder="https://sms-gateway.baanhuay.com/webhook" />
+                          <p className="text-xs text-gray-500 mt-1">* สำหรับเครื่องที่ติดตั้ง App อ่าน SMS ธนาคาร</p>
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Secret Token</label>
+                          <input type="password" value="sk_test_51Mz..." readOnly className="w-full border border-gray-300 rounded p-2 text-sm bg-gray-100 text-gray-500" />
+                      </div>
+                  </div>
+              </div>
+
+              {/* Withdraw Gateway */}
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <div className="flex justify-between items-center mb-4 border-b pb-2">
+                      <h3 className="font-bold text-lg text-red-700">ระบบถอนอัตโนมัติ (Withdraw Gateway)</h3>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                      </label>
+                  </div>
+
+                  <div className="space-y-4">
+                      <div className="p-3 bg-red-50 border border-red-100 rounded text-sm text-red-800">
+                          <p>⚠️ <strong>สถานะ: ปิดใช้งาน (Manual Approve Only)</strong></p>
+                          <p className="text-xs mt-1">ต้องกดอนุมัติด้วยมือเท่านั้น เพื่อความปลอดภัย</p>
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">API Provider</label>
+                          <select className="w-full border border-gray-300 rounded p-2 text-sm" disabled>
+                              <option>Direct Bank API (Corporate)</option>
+                          </select>
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Auto Withdraw Limit (บาท/ครั้ง)</label>
+                          <input type="number" className="w-full border border-gray-300 rounded p-2 text-sm" placeholder="50000" disabled />
+                      </div>
                   </div>
               </div>
           </div>
@@ -515,7 +651,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 
                 {renderSidebarItem('lotto-sys', 'จัดการระบบหวย', <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>)}
 
-                {/* NEW AFFILIATE MENU */}
+                {/* NEW API MANAGEMENT MENU */}
+                {renderSidebarItem('api-system', 'จัดการ API ระบบ', <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>)}
+
                 {renderSidebarItem('affiliate', 'ระบบพันธมิตร', <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>)}
 
                 {renderSidebarItem('members', 'จัดการสมาชิก', <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>)}
@@ -543,7 +681,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </button>
                     <h1 className="text-xl font-bold text-gray-800 capitalize">
-                        {activeTab === 'lotto-sys' ? 'จัดการระบบหวย' : activeTab === 'affiliate' ? 'ระบบพันธมิตร (Affiliate)' : activeTab.replace('-', ' ')}
+                        {activeTab === 'lotto-sys' ? 'จัดการระบบหวย' : activeTab === 'affiliate' ? 'ระบบพันธมิตร (Affiliate)' : activeTab === 'api-system' ? 'จัดการ API ระบบ (API Management)' : activeTab.replace('-', ' ')}
                     </h1>
                 </div>
                 <div className="flex items-center gap-4">
@@ -667,6 +805,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                         {lottoSubTab === 'yiki' && renderYikiManagement()}
                         {lottoSubTab === 'stock' && renderStockManagement()}
                         {lottoSubTab === 'config' && renderConfig()}
+                    </div>
+                )}
+
+                {/* API MANAGEMENT (NEW) */}
+                {activeTab === 'api-system' && (
+                    <div className="animate-fade-in">
+                        {/* Sub Navigation */}
+                        <div className="flex gap-2 mb-6 border-b border-gray-200 pb-1 overflow-x-auto">
+                            <button 
+                                onClick={() => setApiSubTab('lotto-api')}
+                                className={`px-6 py-2 font-bold rounded-t-lg transition whitespace-nowrap ${apiSubTab === 'lotto-api' ? 'bg-[#b08528] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                            >
+                                📡 API ผลรางวัล (Lotto)
+                            </button>
+                            <button 
+                                onClick={() => setApiSubTab('bank-api')}
+                                className={`px-6 py-2 font-bold rounded-t-lg transition whitespace-nowrap ${apiSubTab === 'bank-api' ? 'bg-[#b08528] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                            >
+                                💳 API ธนาคาร (Banking)
+                            </button>
+                        </div>
+
+                        {apiSubTab === 'lotto-api' && renderLottoApi()}
+                        {apiSubTab === 'bank-api' && renderBankApi()}
                     </div>
                 )}
 
