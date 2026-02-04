@@ -1,0 +1,46 @@
+/* Admin Theme - White & Blue Only */
+:root {
+  --admin-primary: #2563eb;
+  --admin-primary-hover: #1d4ed8;
+  --admin-primary-light: #dbeafe;
+  --admin-secondary: #3b82f6;
+  --admin-bg: #f9fafb;
+  --admin-white: #ffffff;
+  --admin-border: #e5e7eb;
+  --admin-text: #111827;
+  --admin-text-light: #6b7280;
+}
+
+.admin-btn-primary {
+  background-color: var(--admin-primary);
+  color: var(--admin-white);
+}
+
+.admin-btn-primary:hover {
+  background-color: var(--admin-primary-hover);
+}
+
+.admin-card {
+  background-color: var(--admin-white);
+  border: 1px solid var(--admin-border);
+}
+
+.admin-badge-blue {
+  background-color: var(--admin-primary-light);
+  color: var(--admin-primary);
+}
+
+.admin-status-active {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-status-pending {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.admin-status-inactive {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}

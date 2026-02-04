@@ -3,6 +3,7 @@ import { Button } from '../components/Button';
 
 interface AdminDashboardProps {
   onLogout: () => void;
+  onNavigate?: (page: any) => void;
 }
 
 type TabView = 'dashboard' | 'members' | 'finance' | 'bets' | 'lotto-sys' | 'affiliate' | 'api-system' | 'results' | 'settings';
@@ -10,7 +11,7 @@ type LottoSubTab = 'gov' | 'yiki' | 'stock' | 'config';
 type AffiliateSubTab = 'overview' | 'tree' | 'logs' | 'fraud' | 'rates';
 type ApiSubTab = 'lotto-api' | 'bank-api';
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<TabView>('dashboard');
   const [lottoSubTab, setLottoSubTab] = useState<LottoSubTab>('gov');
   const [affSubTab, setAffSubTab] = useState<AffiliateSubTab>('overview');
@@ -721,7 +722,116 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                             </div>
                             <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-green-500">
                                 <div className="text-gray-500 text-sm font-bold uppercase">กำไรสุทธิ (วันนี้)</div>
-                                <div className="text-3xl font-black text-green-600 mt-2">+ ฿ 111,700</div>
+                                <div className="text-3xl font-black text-gray-800 mt-2">฿ 89,400</div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-800 mb-4">� ระบบจัดการหลัก (Phase 1)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('admin-dashboard-v2')}>
+                                    <div className="text-4xl mb-3">📊</div>
+                                    <h3 className="font-bold text-lg mb-2">Dashboard Real-time</h3>
+                                    <p className="text-sm text-indigo-100">ภาพรวมระบบแบบเรียลไทม์ พร้อมกราฟและสถิติ</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('member-management')}>
+                                    <div className="text-4xl mb-3">👥</div>
+                                    <h3 className="font-bold text-lg mb-2">จัดการสมาชิก</h3>
+                                    <p className="text-sm text-teal-100">ดู แก้ไข ระงับบัญชี และจัดการเครดิต</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('bet-management')}>
+                                    <div className="text-4xl mb-3">📋</div>
+                                    <h3 className="font-bold text-lg mb-2">จัดการโพย</h3>
+                                    <p className="text-sm text-emerald-100">ดู แก้ไข ยกเลิกโพย และตรวจสอบรายละเอียด</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-800 mb-4">� ระบบจัดการขั้นสูง (Phase 2)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('deposit-withdrawal')}>
+                                    <div className="text-4xl mb-3">💰</div>
+                                    <h3 className="font-bold text-lg mb-2">ฝาก-ถอน</h3>
+                                    <p className="text-sm text-blue-100">อนุมัติ/ปฏิเสธ รายการฝาก-ถอนเงิน</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('result-announcement')}>
+                                    <div className="text-4xl mb-3">🏆</div>
+                                    <h3 className="font-bold text-lg mb-2">ประกาศผล</h3>
+                                    <p className="text-sm text-yellow-100">ประกาศผลรางวัลและจ่ายเงินอัตโนมัติ</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-red-500 to-pink-500 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('realtime-risk')}>
+                                    <div className="text-4xl mb-3">⚡</div>
+                                    <h3 className="font-bold text-lg mb-2">Risk Real-time</h3>
+                                    <p className="text-sm text-red-100">ติดตามความเสี่ยงแบบเรียลไทม์</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-800 mb-4">🎯 ระบบขั้นสูง (Phase 3)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                                <div className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('reports-analytics')}>
+                                    <div className="text-4xl mb-3">📊</div>
+                                    <h3 className="font-bold text-lg mb-2">รายงาน & Analytics</h3>
+                                    <p className="text-sm text-indigo-100">วิเคราะห์ข้อมูลและสร้างรายงาน</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('notification-system')}>
+                                    <div className="text-4xl mb-3">🔔</div>
+                                    <h3 className="font-bold text-lg mb-2">ระบบแจ้งเตือน</h3>
+                                    <p className="text-sm text-pink-100">แจ้งเตือนและกิจกรรมสำคัญ</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('advanced-features')}>
+                                    <div className="text-4xl mb-3">⚡</div>
+                                    <h3 className="font-bold text-lg mb-2">Advanced Features</h3>
+                                    <p className="text-sm text-orange-100">ฟีเจอร์ขั้นสูงและการตั้งค่า</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">✨ ใหม่!</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-green-500 to-teal-500 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('integration-settings')}>
+                                    <div className="text-4xl mb-3">🔗</div>
+                                    <h3 className="font-bold text-lg mb-2">การเชื่อมต่อ</h3>
+                                    <p className="text-sm text-green-100">Line, SMS, Email Integration</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">🔥 HOT!</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                            <h3 className="font-bold text-gray-800 mb-4">�� เครื่องมือ Risk Management</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('risk-simulator')}>
+                                    <div className="text-4xl mb-3">🎯</div>
+                                    <h3 className="font-bold text-lg mb-2">Risk Simulator</h3>
+                                    <p className="text-sm text-orange-100">ทดสอบระบบคำนวณความเสี่ยงและอัตราจ่าย</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">เครื่องมือทดสอบ</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('risk-logic-simulator')}>
+                                    <div className="text-4xl mb-3">🧮</div>
+                                    <h3 className="font-bold text-lg mb-2">Risk Logic Simulator</h3>
+                                    <p className="text-sm text-pink-100">ปรับแต่งสูตรและทดสอบ Allocation แบบเรียลไทม์</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">เครื่องมือขั้นสูง</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('bet-tracking')}>
+                                    <div className="text-4xl mb-3">📊</div>
+                                    <h3 className="font-bold text-lg mb-2">ตารางเก็บยอดแทง</h3>
+                                    <p className="text-sm text-blue-100">ดูยอดแทงแต่ละเลขแบบ Real-time</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">เครื่องมือติดตาม</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 shadow-lg text-white cursor-pointer hover:shadow-xl transition-shadow" onClick={() => onNavigate?.('bot-simulator')}>
+                                    <div className="text-4xl mb-3">🤖</div>
+                                    <h3 className="font-bold text-lg mb-2">Bot Simulator</h3>
+                                    <p className="text-sm text-purple-100">จำลองการแทงอัตโนมัติเพื่อทดสอบ Risk</p>
+                                    <div className="mt-4 text-xs bg-white/20 rounded px-3 py-1 inline-block">เครื่องมือทดสอบ AI</div>
+                                </div>
                             </div>
                         </div>
 
@@ -1046,7 +1156,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center animate-fade-in">
                          <div className="text-6xl mb-4">⚙️</div>
                          <h2 className="text-xl font-bold text-gray-800">ตั้งค่าระบบทั่วไป</h2>
-                         <p className="text-gray-500">กรุณาไปที่เมนู "จัดการระบบหวย > ตั้งค่า/คืนโพย" สำหรับการตั้งค่าเชิงลึก</p>
+                         <p className="text-gray-500">กรุณาไปที่เมนู "จัดการระบบหวย {'>'} ตั้งค่า/คืนโพย" สำหรับการตั้งค่าเชิงลึก</p>
                      </div>
                 )}
 

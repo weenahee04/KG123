@@ -9,6 +9,7 @@ interface LandingPageProps {
   password: string;
   setPassword: (s: string) => void;
   onGoAdmin?: () => void;
+  onRiskSimulator?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ 
@@ -19,7 +20,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   setUsername, 
   password, 
   setPassword,
-  onGoAdmin
+  onGoAdmin,
+  onRiskSimulator
 }) => {
   return (
     <div className="min-h-screen bg-[#111] font-sans text-white pb-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
@@ -39,14 +41,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Top Right Buttons */}
           <div className="flex gap-2">
             <button className="flex items-center gap-1 bg-white text-[#333] px-3 py-1 rounded shadow-sm text-sm font-bold hover:bg-gray-100 transition">
-              <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"></path><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"></path></svg>
+              <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"></path><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2h-1z"></path></svg>
               ติดต่อเรา
             </button>
             <button 
                 onClick={onRegister}
                 className="flex items-center gap-1 bg-[#233142] text-white px-3 py-1 rounded shadow-sm text-sm font-bold hover:bg-[#34495e] transition"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"></path></svg>
               สมัครสมาชิก
             </button>
           </div>
@@ -111,7 +113,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         onClick={onRegister}
                         className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-[#374151] hover:bg-[#4b5563] text-white px-4 py-1.5 rounded border border-gray-600 text-sm font-medium transition"
                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"></path></svg>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
                         สมัครสมาชิก
                      </button>
                      <button 
@@ -296,6 +298,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
            {/* Secret Admin Entry */}
            {onGoAdmin && (
              <div onClick={onGoAdmin} className="absolute bottom-2 right-2 w-4 h-4 opacity-0 hover:opacity-100 cursor-pointer text-gray-800" title="Admin">⚙️</div>
+           )}
+           {/* Risk Simulator Entry */}
+           {onRiskSimulator && (
+             <div onClick={onRiskSimulator} className="absolute bottom-2 right-12 px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded cursor-pointer text-xs font-bold shadow-lg transition" title="Risk Simulator">🎯 Risk Simulator</div>
            )}
       </div>
 
