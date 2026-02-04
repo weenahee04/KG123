@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -15,36 +15,36 @@ datasource db {
 // ============================================
 model SystemConfig {
   id              String   @id @default("config")
-  initialCapital  Decimal  @default(500000) @db.Decimal(15, 2)
+  initialCapital  Float    @default(500000)
   
   // Base Payout Rates
   payoutTop3      Int      @default(800)
   payoutToad3     Int      @default(150)
   payoutTop2      Int      @default(90)
   payoutBottom2   Int      @default(90)
-  payoutRun       Decimal  @default(3.2) @db.Decimal(5, 2)
+  payoutRun       Float    @default(3.2)
   
   // Tier 1 Payout Rates (70-85% usage)
   payoutTop3Tier1      Int      @default(650)
   payoutToad3Tier1     Int      @default(130)
   payoutTop2Tier1      Int      @default(80)
   payoutBottom2Tier1   Int      @default(80)
-  payoutRunTier1       Decimal  @default(3.0) @db.Decimal(5, 2)
+  payoutRunTier1       Float    @default(3.0)
   
   // Tier 2 Payout Rates (85-100% usage)
   payoutTop3Tier2      Int      @default(500)
   payoutToad3Tier2     Int      @default(110)
   payoutTop2Tier2      Int      @default(70)
   payoutBottom2Tier2   Int      @default(70)
-  payoutRunTier2       Decimal  @default(2.8) @db.Decimal(5, 2)
+  payoutRunTier2       Float    @default(2.8)
   
   // Affiliate/Commission Rate
-  affiliateRate   Decimal  @default(0.08) @db.Decimal(5, 4)
+  affiliateRate   Float    @default(0.08)
   
   // Risk Thresholds
-  warningThreshold  Decimal  @default(0.70) @db.Decimal(5, 4)
-  dangerThreshold   Decimal  @default(0.85) @db.Decimal(5, 4)
-  rejectThreshold   Decimal  @default(1.00) @db.Decimal(5, 4)
+  warningThreshold  Float  @default(0.70)
+  dangerThreshold   Float  @default(0.85)
+  rejectThreshold   Float  @default(1.00)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -55,9 +55,9 @@ model SystemConfig {
 // ============================================
 model GlobalStats {
   id              String   @id @default("stats")
-  netTotalSales   Decimal  @default(0) @db.Decimal(15, 2)
+  netTotalSales   Float    @default(0)
   totalTickets    Int      @default(0)
-  totalWinnings   Decimal  @default(0) @db.Decimal(15, 2)
+  totalWinnings   Float    @default(0)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -70,7 +70,7 @@ model LottoRisk {
   id              String   @id @default(cuid())
   type            String   // "TOP3", "TOAD3", "TOP2", "BOTTOM2", "RUN"
   number          String   // "123", "45", "7"
-  totalBetAmount  Decimal  @default(0) @db.Decimal(15, 2)
+  totalBetAmount  Float    @default(0)
   betCount        Int      @default(0)
   isBlocked       Boolean  @default(false)
   
@@ -124,7 +124,7 @@ model User {
   role            String   @default("MEMBER") // "MEMBER", "AGENT", "ADMIN", "SUPER_ADMIN"
   status          String   @default("ACTIVE") // "ACTIVE", "SUSPENDED", "BANNED"
   
-  balance         Decimal  @default(0) @db.Decimal(15, 2)
+  balance         Float    @default(0)
   
   // Referral System
   referralCode    String?  @unique
@@ -157,13 +157,13 @@ model Ticket {
   
   bets            Bet[]
   
-  totalAmount     Decimal  @db.Decimal(15, 2)
-  netAmount       Decimal  @db.Decimal(15, 2) // After affiliate commission
+  totalAmount     Float
+  netAmount       Float    // After affiliate commission
   
   status          String   @default("PENDING") // "PENDING", "WON", "LOST", "CANCELLED"
   
   hasReferrer     Boolean  @default(false)
-  commissionPaid  Decimal  @default(0) @db.Decimal(15, 2)
+  commissionPaid  Float    @default(0)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -185,13 +185,13 @@ model Bet {
   
   type            String   // "TOP3", "TOAD3", "TOP2", "BOTTOM2", "RUN"
   number          String   // "123", "45", "7"
-  amount          Decimal  @db.Decimal(15, 2)
+  amount          Float
   
-  assignedPayout  Decimal  @db.Decimal(10, 2) // The payout rate assigned at bet time
-  potentialWin    Decimal  @db.Decimal(15, 2) // amount * assignedPayout
+  assignedPayout  Float    // The payout rate assigned at bet time
+  potentialWin    Float    // amount * assignedPayout
   
   status          String   @default("PENDING") // "PENDING", "WON", "LOST"
-  actualWin       Decimal  @default(0) @db.Decimal(15, 2)
+  actualWin       Float    @default(0)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -210,9 +210,9 @@ model Transaction {
   user            User     @relation(fields: [userId], references: [id])
   
   type            String   // "DEPOSIT", "WITHDRAWAL", "BET", "WIN", "COMMISSION"
-  amount          Decimal  @db.Decimal(15, 2)
-  balanceBefore   Decimal  @db.Decimal(15, 2)
-  balanceAfter    Decimal  @db.Decimal(15, 2)
+  amount          Float
+  balanceBefore   Float
+  balanceAfter    Float
   
   status          String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "COMPLETED"
   

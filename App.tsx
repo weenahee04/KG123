@@ -49,6 +49,7 @@ import RiskManagementSystem from './pages/RiskManagementSystem';
 import EnhancedAdminDashboard from './pages/EnhancedAdminDashboard';
 import EnhancedRiskManagement from './pages/EnhancedRiskManagement';
 import LotteryOperations from './pages/LotteryOperations';
+import AffiliateManagement from './pages/AffiliateManagement';
 import { PageView } from './types';
 
 function App() {
@@ -191,6 +192,12 @@ function App() {
         return (
           <SidebarAdminLayout onNavigate={setPage} onLogout={handleLogout}>
             <EnhancedRiskManagement />
+          </SidebarAdminLayout>
+        );
+      case 'affiliate-management':
+        return (
+          <SidebarAdminLayout onNavigate={setPage} onLogout={handleLogout}>
+            <AffiliateManagement />
           </SidebarAdminLayout>
         );
       case 'modern-admin':

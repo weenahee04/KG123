@@ -17,7 +17,8 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserPlus
 } from 'lucide-react';
 
 interface SidebarAdminLayoutProps {
@@ -56,6 +57,12 @@ export default function SidebarAdminLayout({ children, onNavigate, onLogout }: S
       label: 'ตัวแทน',
       icon: <Users size={20} />,
       page: 'agent-management'
+    },
+    {
+      id: 'affiliate',
+      label: 'Affiliate (8%)',
+      icon: <UserPlus size={20} />,
+      page: 'affiliate-management'
     },
     {
       id: 'bets',

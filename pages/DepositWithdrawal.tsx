@@ -10,8 +10,10 @@ import {
   Clock,
   Eye,
   AlertCircle,
-  Download
+  Download,
+  RefreshCw
 } from 'lucide-react';
+import { financialAPI } from '../src/services/api';
 
 interface Transaction {
   id: string;
@@ -40,83 +42,47 @@ export default function DepositWithdrawal() {
   const [showProcessModal, setShowProcessModal] = useState(false);
   const [processAction, setProcessAction] = useState<'approve' | 'reject'>('approve');
   const [processNote, setProcessNote] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadTransactions();
-  }, []);
+  }, [filterType, filterStatus]);
 
-  const loadTransactions = () => {
-    const mockTransactions: Transaction[] = [
-      {
-        id: '1',
-        transactionNumber: 'DEP20240204001',
-        username: 'user001',
-        type: 'deposit',
-        amount: 5000,
-        bankName: 'ธนาคารกสิกรไทย',
-        bankAccount: '123-4-56789-0',
-        accountName: 'สมชาย ใจดี',
-        slipUrl: 'https://via.placeholder.com/400x600/4CAF50/FFFFFF?text=SLIP',
-        requestDate: new Date(),
-        status: 'pending',
-      },
-      {
-        id: '2',
-        transactionNumber: 'WD20240204001',
-        username: 'user042',
-        type: 'withdrawal',
-        amount: 3000,
-        bankName: 'ธนาคารไทยพาณิชย์',
-        bankAccount: '987-6-54321-0',
-        accountName: 'สมหญิง รักดี',
-        requestDate: new Date(Date.now() - 1800000),
-        status: 'pending',
-      },
-      {
-        id: '3',
-        transactionNumber: 'DEP20240204002',
-        username: 'user089',
-        type: 'deposit',
-        amount: 10000,
-        bankName: 'ธนาคารกรุงเทพ',
-        bankAccount: '456-7-89012-3',
-        accountName: 'วิชัย มั่งมี',
-        slipUrl: 'https://via.placeholder.com/400x600/2196F3/FFFFFF?text=SLIP',
-        requestDate: new Date(Date.now() - 3600000),
-        status: 'processing',
-      },
-      {
-        id: '4',
-        transactionNumber: 'DEP20240203001',
-        username: 'user123',
-        type: 'deposit',
-        amount: 2000,
-        bankName: 'ธนาคารกสิกรไทย',
-        bankAccount: '111-2-22222-2',
-        accountName: 'สมศรี ดีมาก',
-        slipUrl: 'https://via.placeholder.com/400x600/4CAF50/FFFFFF?text=SLIP',
-        requestDate: new Date(Date.now() - 86400000),
-        processedDate: new Date(Date.now() - 86000000),
-        status: 'approved',
-        processedBy: 'admin',
-      },
-      {
-        id: '5',
-        transactionNumber: 'WD20240203002',
-        username: 'user456',
-        type: 'withdrawal',
-        amount: 1500,
-        bankName: 'ธนาคารกรุงไทย',
-        bankAccount: '333-4-44444-4',
-        accountName: 'สมปอง เฮงดี',
-        requestDate: new Date(Date.now() - 86400000 * 2),
-        processedDate: new Date(Date.now() - 86000000 * 2),
-        status: 'rejected',
-        note: 'ข้อมูลบัญชีไม่ตรง',
-        processedBy: 'admin',
-      },
-    ];
-    setTransactions(mockTransactions);
+  const loadTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const typeFilter = filterType === 'all' ? undefined : filterType.toUpperCase();
+      const statusFilter = filterStatus === 'all' ? undefined : filterStatus.toUpperCase();
+      
+      const data = await financialAPI.getTransactions(typeFilter, statusFilter);
+      
+      const mappedTransactions = data.map(t => ({
+        id: t.id,
+        transactionNumber: t.id,
+        username: t.username,
+        type: t.type.toLowerCase() as 'deposit' | 'withdrawal',
+        amount: t.amount,
+        bankName: '',
+        bankAccount: t.bankAccount,
+        accountName: t.username,
+        slipUrl: t.slipUrl,
+        requestDate: new Date(t.createdAt),
+        processedDate: t.processedAt ? new Date(t.processedAt) : undefined,
+        status: t.status.toLowerCase() as 'pending' | 'approved' | 'rejected' | 'processing',
+        note: t.note,
+        processedBy: t.processedBy
+      }));
+
+      setTransactions(mappedTransactions);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load transactions:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load transactions');
+      setLoading(false);
+    }
   };
 
   const filteredTransactions = transactions.filter(txn => {
@@ -140,24 +106,29 @@ export default function DepositWithdrawal() {
     setShowProcessModal(true);
   };
 
-  const confirmProcess = () => {
-    if (selectedTransaction) {
-      const newStatus = processAction === 'approve' ? 'approved' : 'rejected';
-      setTransactions(transactions.map(t => 
-        t.id === selectedTransaction.id 
-          ? { 
-              ...t, 
-              status: newStatus as 'approved' | 'rejected',
-              processedDate: new Date(),
-              processedBy: 'admin',
-              note: processNote || undefined
-            } 
-          : t
-      ));
+  const confirmProcess = async () => {
+    if (!selectedTransaction) return;
+
+    try {
+      if (processAction === 'approve') {
+        await financialAPI.approveTransaction(selectedTransaction.id, processNote || undefined);
+        alert('อนุมัติรายการสำเร็จ!');
+      } else {
+        if (!processNote) {
+          alert('กรุณาระบุเหตุผลในการปฏิเสธ');
+          return;
+        }
+        await financialAPI.rejectTransaction(selectedTransaction.id, processNote);
+        alert('ปฏิเสธรายการสำเร็จ!');
+      }
+
       setShowProcessModal(false);
       setShowDetailModal(false);
       setSelectedTransaction(null);
       setProcessNote('');
+      await loadTransactions();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
@@ -185,6 +156,35 @@ export default function DepositWithdrawal() {
     todayDeposits: transactions.filter(t => t.type === 'deposit' && t.requestDate.toDateString() === new Date().toDateString()).reduce((sum, t) => sum + t.amount, 0),
     todayWithdrawals: transactions.filter(t => t.type === 'withdrawal' && t.requestDate.toDateString() === new Date().toDateString()).reduce((sum, t) => sum + t.amount, 0),
   };
+
+  if (loading && transactions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-bold">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md">
+          <AlertCircle size={48} className="text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">เกิดข้อผิดพลาด</h2>
+          <p className="text-gray-600 text-center mb-4">{error}</p>
+          <button
+            onClick={() => loadTransactions()}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

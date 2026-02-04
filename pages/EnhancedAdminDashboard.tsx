@@ -24,6 +24,7 @@ import {
   Target,
   XCircle
 } from 'lucide-react';
+import { dashboardAPI } from '../src/services/api';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -40,6 +41,9 @@ interface LiveStats {
   currentLiability: number;
   totalBetsToday: number;
   totalPayoutsToday: number;
+  totalMembers?: number;
+  activeMembers?: number;
+  totalTicketsToday?: number;
 }
 
 interface ActionItem {
@@ -81,6 +85,8 @@ export default function EnhancedAdminDashboard() {
   });
 
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -90,56 +96,59 @@ export default function EnhancedAdminDashboard() {
     }
   }, [autoRefresh]);
 
-  const loadDashboardData = () => {
-    // Mock data - replace with real API calls
-    setLiveStats({
-      depositToday: 1250000,
-      depositYesterday: 1085000,
-      depositCount: 234,
-      withdrawToday: 850000,
-      withdrawYesterday: 920000,
-      withdrawCount: 156,
-      netCashProfit: 400000, // depositToday - withdrawToday
-      netBettingProfit: 185000, // totalBetsToday - totalPayoutsToday
-      currentLiability: 2350000, // ยอดแทงค้างที่รอผลออก
-      totalBetsToday: 3250000,
-      totalPayoutsToday: 3065000,
-    });
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    setActionItems([
-      {
-        id: '1',
-        type: 'deposit',
-        title: 'รอตรวจสลิปฝาก',
-        description: '15 รายการ รอการอนุมัติ',
-        priority: 'high',
-        timestamp: new Date(),
-        amount: 125000
-      },
-      {
-        id: '2',
-        type: 'withdrawal',
-        title: 'รออนุมัติถอน',
-        description: '8 รายการ รอการอนุมัติ',
-        priority: 'high',
-        timestamp: new Date(),
-        amount: 85000
-      },
-      {
-        id: '3',
-        type: 'risk',
-        title: 'เลขเสี่ยงสูง',
-        description: '12 เลข ใช้ลิมิตเกิน 85%',
-        priority: 'medium',
-        timestamp: new Date()
-      }
-    ]);
+      const [stats, actions, health] = await Promise.all([
+        dashboardAPI.getStats(),
+        dashboardAPI.getActionItems(),
+        dashboardAPI.getSystemHealth()
+      ]);
 
-    setSystemHealth({
-      bankingAPI: Math.random() > 0.1 ? 'online' : 'degraded',
-      lottoAPI: Math.random() > 0.05 ? 'online' : 'offline',
-      lastUpdate: new Date(),
-    });
+      // Map API response to LiveStats
+      setLiveStats({
+        depositToday: stats.depositToday,
+        depositYesterday: 0, // Calculate from history if needed
+        depositCount: 0, // Add to API if needed
+        withdrawToday: stats.withdrawToday,
+        withdrawYesterday: 0, // Calculate from history if needed
+        withdrawCount: 0, // Add to API if needed
+        netCashProfit: stats.netProfit,
+        netBettingProfit: 0, // Calculate if needed
+        currentLiability: stats.currentLiability,
+        totalBetsToday: stats.totalBetsToday,
+        totalPayoutsToday: 0, // Add to API if needed
+        totalMembers: stats.totalMembers,
+        activeMembers: stats.activeMembers,
+        totalTicketsToday: stats.totalTicketsToday
+      });
+
+      // Map action items
+      setActionItems(actions.map(item => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        description: item.user || '',
+        priority: item.priority,
+        timestamp: new Date(item.time),
+        amount: item.amount
+      })));
+
+      // Map system health
+      setSystemHealth({
+        bankingAPI: health.bankingApi as 'online' | 'offline' | 'degraded',
+        lottoAPI: health.lottoApi as 'online' | 'offline' | 'degraded',
+        lastUpdate: new Date(health.lastCheck)
+      });
+
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+      setLoading(false);
+    }
   };
 
   const calculatePercentChange = (today: number, yesterday: number) => {
@@ -149,6 +158,35 @@ export default function EnhancedAdminDashboard() {
 
   const depositChange = calculatePercentChange(liveStats.depositToday, liveStats.depositYesterday);
   const withdrawChange = calculatePercentChange(liveStats.withdrawToday, liveStats.withdrawYesterday);
+
+  if (loading && actionItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-bold">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md">
+          <AlertCircle size={48} className="text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">เกิดข้อผิดพลาด</h2>
+          <p className="text-gray-600 text-center mb-4">{error}</p>
+          <button
+            onClick={() => loadDashboardData()}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-3 md:p-6">

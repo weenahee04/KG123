@@ -11,8 +11,11 @@ import {
   Award,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
+import { ticketAPI } from '../src/services/api';
 
 interface Bet {
   id: string;
@@ -37,79 +40,43 @@ export default function BetManagement() {
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadBets();
   }, []);
 
-  const loadBets = () => {
-    const mockBets: Bet[] = [
-      {
-        id: '1',
-        betNumber: 'BET20240204001',
-        username: 'user001',
-        betType: '3ตัวบน',
-        numbers: [
-          { number: '123', amount: 500 },
-          { number: '456', amount: 300 },
-          { number: '789', amount: 200 },
-        ],
-        totalAmount: 1000,
-        discount: 30,
-        netAmount: 970,
-        drawDate: new Date('2024-02-16'),
-        betDate: new Date(),
-        status: 'pending',
-      },
-      {
-        id: '2',
-        betNumber: 'BET20240204002',
-        username: 'user042',
-        betType: '2ตัวบน',
-        numbers: [
-          { number: '12', amount: 400 },
-          { number: '34', amount: 300 },
-        ],
-        totalAmount: 700,
-        discount: 21,
-        netAmount: 679,
-        drawDate: new Date('2024-02-16'),
-        betDate: new Date(Date.now() - 3600000),
-        status: 'pending',
-      },
-      {
-        id: '3',
-        betNumber: 'BET20240203001',
-        username: 'user089',
-        betType: '3ตัวโต๊ด',
-        numbers: [
-          { number: '456', amount: 200 },
-        ],
-        totalAmount: 200,
-        discount: 6,
-        netAmount: 194,
-        drawDate: new Date('2024-02-01'),
-        betDate: new Date(Date.now() - 86400000 * 3),
-        status: 'won',
-        winAmount: 16000,
-      },
-      {
-        id: '4',
-        betNumber: 'BET20240203002',
-        username: 'user001',
-        betType: '2ตัวล่าง',
-        numbers: [
-          { number: '89', amount: 500 },
-        ],
-        totalAmount: 500,
-        discount: 15,
-        netAmount: 485,
-        drawDate: new Date('2024-02-01'),
-        betDate: new Date(Date.now() - 86400000 * 3),
-        status: 'lost',
-      },
-    ];
-    setBets(mockBets);
+  const loadBets = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const statusFilter = filterStatus === 'all' ? undefined : filterStatus.toUpperCase();
+      const data = await ticketAPI.getTickets(undefined, undefined, statusFilter);
+
+      const mappedBets = data.map(t => ({
+        id: t.id,
+        betNumber: t.id,
+        username: t.username,
+        betType: t.bets[0]?.betType || 'unknown',
+        numbers: t.bets.map(b => ({ number: b.number, amount: b.amount })),
+        totalAmount: t.totalAmount,
+        discount: 0,
+        netAmount: t.totalAmount,
+        drawDate: new Date(),
+        betDate: new Date(t.createdAt),
+        status: t.status.toLowerCase() as 'pending' | 'won' | 'lost' | 'cancelled',
+        winAmount: t.winAmount
+      }));
+
+      setBets(mappedBets);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load bets:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load bets');
+      setLoading(false);
+    }
   };
 
   const filteredBets = bets.filter(bet => {
@@ -131,13 +98,20 @@ export default function BetManagement() {
     setShowCancelModal(true);
   };
 
-  const confirmCancelBet = () => {
-    if (selectedBet) {
-      setBets(bets.map(b => 
-        b.id === selectedBet.id ? { ...b, status: 'cancelled' as const } : b
-      ));
+  const confirmCancelBet = async () => {
+    if (!selectedBet) return;
+
+    const reason = prompt('ระบุเหตุผลในการยกเลิก:');
+    if (!reason) return;
+
+    try {
+      await ticketAPI.cancelTicket(selectedBet.id, reason);
+      alert('ยกเลิกโพยสำเร็จ!');
       setShowCancelModal(false);
       setSelectedBet(null);
+      await loadBets();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
@@ -165,6 +139,35 @@ export default function BetManagement() {
     totalAmount: bets.reduce((sum, b) => sum + b.netAmount, 0),
     totalWin: bets.filter(b => b.status === 'won').reduce((sum, b) => sum + (b.winAmount || 0), 0),
   };
+
+  if (loading && bets.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-bold">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md">
+          <AlertCircle size={48} className="text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">เกิดข้อผิดพลาด</h2>
+          <p className="text-gray-600 text-center mb-4">{error}</p>
+          <button
+            onClick={() => loadBets()}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

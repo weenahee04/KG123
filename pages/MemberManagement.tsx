@@ -12,8 +12,11 @@ import {
   Download,
   UserPlus,
   Shield,
-  Award
+  Award,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
+import { memberAPI } from '../src/services/api';
 
 interface Member {
   id: string;
@@ -43,64 +46,46 @@ export default function MemberManagement() {
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [creditAmount, setCreditAmount] = useState(0);
   const [creditType, setCreditType] = useState<'add' | 'subtract'>('add');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadMembers();
   }, []);
 
-  const loadMembers = () => {
-    const mockMembers: Member[] = [
-      {
-        id: '1',
-        username: 'user001',
-        fullName: 'สมชาย ใจดี',
-        phone: '0812345678',
-        email: 'somchai@email.com',
-        credit: 15000,
-        totalBets: 250000,
-        totalDeposit: 50000,
-        totalWithdraw: 35000,
-        level: 'VIP',
-        status: 'active',
-        referralCode: 'REF001',
-        joinDate: new Date('2024-01-15'),
-        lastActive: new Date(),
-      },
-      {
-        id: '2',
-        username: 'user042',
-        fullName: 'สมหญิง รักสนุก',
-        phone: '0823456789',
-        email: 'somying@email.com',
-        credit: 8500,
-        totalBets: 120000,
-        totalDeposit: 25000,
-        totalWithdraw: 16500,
-        level: 'Premium',
-        status: 'active',
-        referralCode: 'REF042',
-        referredBy: 'user001',
-        joinDate: new Date('2024-02-20'),
-        lastActive: new Date(),
-      },
-      {
-        id: '3',
-        username: 'user089',
-        fullName: 'สมศรี มีสุข',
-        phone: '0834567890',
-        email: 'somsri@email.com',
-        credit: 3200,
-        totalBets: 45000,
-        totalDeposit: 10000,
-        totalWithdraw: 6800,
-        level: 'Normal',
-        status: 'active',
-        referralCode: 'REF089',
-        joinDate: new Date('2024-03-10'),
-        lastActive: new Date(Date.now() - 3600000),
-      },
-    ];
-    setMembers(mockMembers);
+  const loadMembers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const statusFilter = filterStatus === 'all' ? undefined : filterStatus.toUpperCase();
+      const data = await memberAPI.getMembers(searchTerm || undefined, statusFilter);
+
+      const mappedMembers = data.map(m => ({
+        id: m.id,
+        username: m.username,
+        fullName: m.fullName,
+        phone: m.phone,
+        email: '',
+        credit: m.balance,
+        totalBets: m.totalBets,
+        totalDeposit: m.totalDeposit,
+        totalWithdraw: m.totalWithdraw,
+        level: 'Normal' as 'VIP' | 'Premium' | 'Normal',
+        status: m.status.toLowerCase() as 'active' | 'suspended' | 'banned',
+        referralCode: m.referralCode,
+        referredBy: m.referredBy,
+        joinDate: new Date(m.createdAt),
+        lastActive: m.lastLogin ? new Date(m.lastLogin) : new Date(m.createdAt)
+      }));
+
+      setMembers(mappedMembers);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load members:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load members');
+      setLoading(false);
+    }
   };
 
   const filteredMembers = members.filter(member => {
@@ -118,25 +103,40 @@ export default function MemberManagement() {
     setCreditAmount(0);
   };
 
-  const handleSaveCredit = () => {
-    if (selectedMember) {
-      const newCredit = creditType === 'add' 
-        ? selectedMember.credit + creditAmount 
-        : selectedMember.credit - creditAmount;
-      
-      setMembers(members.map(m => 
-        m.id === selectedMember.id ? { ...m, credit: newCredit } : m
-      ));
+  const handleSaveCredit = async () => {
+    if (!selectedMember || creditAmount === 0) {
+      alert('กรุณาระบุจำนวนเงิน');
+      return;
+    }
+
+    try {
+      const adjustAmount = creditType === 'add' ? creditAmount : -creditAmount;
+      await memberAPI.adjustBalance(selectedMember.id, adjustAmount, 'Manual adjustment by admin');
+      alert('ปรับยอดเครดิตสำเร็จ!');
       setShowCreditModal(false);
       setSelectedMember(null);
+      setCreditAmount(0);
+      await loadMembers();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
-  const handleToggleStatus = (member: Member) => {
-    const newStatus = member.status === 'active' ? 'suspended' : 'active';
-    setMembers(members.map(m => 
-      m.id === member.id ? { ...m, status: newStatus } : m
-    ));
+  const handleToggleStatus = async (member: Member) => {
+    try {
+      if (member.status === 'active') {
+        const reason = prompt('ระบุเหตุผลในการระงับ:');
+        if (!reason) return;
+        await memberAPI.suspendMember(member.id, reason);
+        alert('ระงับสมาชิกสำเร็จ!');
+      } else {
+        await memberAPI.unsuspendMember(member.id);
+        alert('ยกเลิกระงับสมาชิกสำเร็จ!');
+      }
+      await loadMembers();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
   };
 
   const getLevelBadge = (level: string) => {
@@ -156,6 +156,35 @@ export default function MemberManagement() {
     };
     return styles[status as keyof typeof styles] || styles.active;
   };
+
+  if (loading && members.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-bold">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md">
+          <AlertCircle size={48} className="text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">เกิดข้อผิดพลาด</h2>
+          <p className="text-gray-600 text-center mb-4">{error}</p>
+          <button
+            onClick={() => loadMembers()}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

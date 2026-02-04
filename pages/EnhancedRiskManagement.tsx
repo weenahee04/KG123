@@ -22,6 +22,7 @@ import {
   Grid3x3,
   Sliders
 } from 'lucide-react';
+import { riskAPI } from '../src/services/api';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -72,6 +73,8 @@ export default function EnhancedRiskManagement() {
   const [showSettings, setShowSettings] = useState(false);
   const [showManualControl, setShowManualControl] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Manual Control States
   const [manualNumber, setManualNumber] = useState('');
@@ -117,71 +120,109 @@ export default function EnhancedRiskManagement() {
     }
   }, [autoRefresh, selectedBetType, config]);
 
-  const loadRiskData = () => {
-    const mockRisks: NumberRisk[] = [];
-    const currentCapital = config.initialCapital + config.totalSales;
-    const allocation = config.allocations[selectedBetType as keyof typeof config.allocations];
-    const payout = config.payouts[selectedBetType as keyof typeof config.payouts];
-    
-    const typePot = (currentCapital * allocation) / 100;
-    const maxLimit = typePot / payout.base;
+  const loadRiskData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    const numCount = selectedBetType === 'run' ? 10 : (selectedBetType.includes('2') ? 100 : 1000);
+      const [numbers, configData] = await Promise.all([
+        riskAPI.getNumbers(selectedBetType),
+        riskAPI.getConfig()
+      ]);
 
-    for (let i = 0; i < numCount; i++) {
-      const number = i.toString().padStart(selectedBetType === 'run' ? 1 : (selectedBetType.includes('2') ? 2 : 3), '0');
-      
-      const randomFactor = Math.random();
-      let totalBet = 0;
-      
-      if (randomFactor > 0.95) {
-        totalBet = maxLimit * (0.9 + Math.random() * 0.3);
-      } else if (randomFactor > 0.85) {
-        totalBet = maxLimit * (0.7 + Math.random() * 0.2);
-      } else if (randomFactor > 0.6) {
-        totalBet = maxLimit * (0.3 + Math.random() * 0.4);
-      } else if (randomFactor > 0.3) {
-        totalBet = maxLimit * (0.05 + Math.random() * 0.25);
-      }
-
-      const usagePercent = (totalBet / maxLimit) * 100;
-      const betCount = totalBet > 0 ? Math.floor(Math.random() * 20) + 1 : 0;
-
-      let status: 'safe' | 'warning' | 'danger' | 'blocked' = 'safe';
-      let currentPayout = payout.base;
-      let autoBlocked = false;
-
-      if (config.autoStepDown) {
-        if (usagePercent >= config.thresholds.reject) {
-          status = 'blocked';
-          currentPayout = 0;
-          autoBlocked = true;
-        } else if (usagePercent >= config.thresholds.danger) {
-          status = 'danger';
-          currentPayout = payout.tier2;
-        } else if (usagePercent >= config.thresholds.warning) {
-          status = 'warning';
-          currentPayout = payout.tier1;
-        }
-      }
-
-      const potentialLoss = totalBet * currentPayout;
-
-      mockRisks.push({
-        number,
-        betType: selectedBetType as any,
-        totalBet,
-        maxLimit,
-        usagePercent,
-        status,
-        currentPayout,
-        potentialLoss,
-        betCount,
-        autoBlocked
+      // Update config from API
+      setConfig({
+        initialCapital: configData.initialCapital,
+        totalSales: configData.currentCapital - configData.initialCapital,
+        allocations: configData.allocations,
+        payouts: configData.payouts,
+        thresholds: {
+          warning: configData.warningThreshold,
+          danger: configData.dangerThreshold,
+          reject: configData.rejectThreshold
+        },
+        autoStepDown: configData.autoStepDown
       });
+
+      // Map API numbers to local format
+      const mappedNumbers = numbers.map(n => ({
+        number: n.number,
+        betType: n.betType,
+        totalBet: n.totalBet,
+        maxLimit: n.maxLimit,
+        usagePercent: n.usagePercent,
+        status: n.status as 'safe' | 'warning' | 'danger' | 'blocked',
+        currentPayout: n.currentPayout,
+        potentialLoss: n.totalBet * n.currentPayout,
+        betCount: 0, // Add to API if needed
+        autoBlocked: n.manualClosed,
+        manualPayout: n.manualLimit
+      }));
+
+      setRiskNumbers(mappedNumbers.sort((a, b) => b.usagePercent - a.usagePercent));
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load risk data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load risk data');
+      setLoading(false);
+    }
+  };
+
+  const handleCloseNumber = async (number: string) => {
+    try {
+      await riskAPI.closeNumber(number, selectedBetType);
+      alert('ปิดรับเลขสำเร็จ!');
+      await loadRiskData();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  const handleOpenNumber = async (number: string) => {
+    try {
+      await riskAPI.openNumber(number, selectedBetType);
+      alert('เปิดรับเลขสำเร็จ!');
+      await loadRiskData();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  const handleSetManualLimit = async () => {
+    if (!manualNumber || !manualPayout) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
     }
 
-    setRiskNumbers(mockRisks.sort((a, b) => b.usagePercent - a.usagePercent));
+    try {
+      await riskAPI.setManualLimit(manualNumber, selectedBetType, parseFloat(manualPayout));
+      alert('ตั้งลิมิตสำเร็จ!');
+      setManualNumber('');
+      setManualPayout('');
+      setShowManualControl(false);
+      await loadRiskData();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  const handleUpdateConfig = async () => {
+    try {
+      await riskAPI.updateConfig({
+        initialCapital: config.initialCapital,
+        warningThreshold: config.thresholds.warning,
+        dangerThreshold: config.thresholds.danger,
+        rejectThreshold: config.thresholds.reject,
+        allocations: config.allocations,
+        payouts: config.payouts,
+        autoStepDown: config.autoStepDown
+      });
+      alert('อัพเดทการตั้งค่าสำเร็จ!');
+      setShowSettings(false);
+      await loadRiskData();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
   };
 
   const stats = {

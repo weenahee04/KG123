@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar,
   Clock,
@@ -21,6 +21,7 @@ import {
   RotateCcw,
   AlertTriangle
 } from 'lucide-react';
+import { lotteryAPI, LotteryRound as APILotteryRound } from '../src/services/api';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -45,45 +46,32 @@ interface LotteryRound {
 
 export default function LotteryOperations() {
   const [activeTab, setActiveTab] = useState<'rounds' | 'results' | 'refund'>('rounds');
-  const [rounds, setRounds] = useState<LotteryRound[]>([
-    {
-      id: '1',
-      roundNumber: 'GOV-16022567',
-      lotteryType: 'GOVERNMENT',
-      drawDate: new Date('2024-02-16'),
-      openTime: new Date('2024-02-01 06:00'),
-      closeTime: new Date('2024-02-16 15:00'),
-      status: 'OPEN',
-      totalBets: 1250000,
-      totalTickets: 3421
-    },
-    {
-      id: '2',
-      roundNumber: 'YIKI-04022567-14',
-      lotteryType: 'YIKI',
-      drawDate: new Date('2024-02-04'),
-      openTime: new Date('2024-02-04 13:00'),
-      closeTime: new Date('2024-02-04 13:50'),
-      status: 'CLOSED',
-      totalBets: 85000,
-      totalTickets: 234
-    },
-    {
-      id: '3',
-      roundNumber: 'HANOI-03022567',
-      lotteryType: 'HANOI',
-      drawDate: new Date('2024-02-03'),
-      openTime: new Date('2024-02-03 06:00'),
-      closeTime: new Date('2024-02-03 17:30'),
-      status: 'ANNOUNCED',
-      resultTop3: '123',
-      resultTop2: '45',
-      resultBottom2: '67',
-      totalBets: 450000,
-      totalPayout: 385000,
-      totalTickets: 1205
+  const [rounds, setRounds] = useState<LotteryRound[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadRounds();
+  }, []);
+
+  const loadRounds = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await lotteryAPI.getRounds();
+      setRounds(data.map(r => ({
+        ...r,
+        drawDate: new Date(r.drawDate),
+        openTime: new Date(r.openTime),
+        closeTime: new Date(r.closeTime)
+      })));
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load rounds:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load rounds');
+      setLoading(false);
     }
-  ]);
+  };
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
@@ -145,199 +133,162 @@ export default function LotteryOperations() {
     return labels[status] || status;
   };
 
-  const handleCreateRound = () => {
+  const handleCreateRound = async () => {
     if (!newRound.drawDate || !newRound.openTime || !newRound.closeTime) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
 
-    const round: LotteryRound = {
-      id: Date.now().toString(),
-      roundNumber: `${newRound.lotteryType.substring(0, 3)}-${Date.now()}`,
-      lotteryType: newRound.lotteryType as any,
-      drawDate: new Date(newRound.drawDate),
-      openTime: new Date(newRound.openTime),
-      closeTime: new Date(newRound.closeTime),
-      status: 'WAITING',
-      totalBets: 0,
-      totalTickets: 0
-    };
-
-    setRounds([round, ...rounds]);
-    setShowCreateModal(false);
-    setNewRound({ lotteryType: 'GOVERNMENT', drawDate: '', openTime: '', closeTime: '' });
-    alert('สร้างงวดสำเร็จ!');
+    try {
+      await lotteryAPI.createRound({
+        lotteryType: newRound.lotteryType,
+        drawDate: newRound.drawDate,
+        openTime: newRound.openTime,
+        closeTime: newRound.closeTime
+      });
+      
+      setShowCreateModal(false);
+      setNewRound({ lotteryType: 'GOVERNMENT', drawDate: '', openTime: '', closeTime: '' });
+      alert('สร้างงวดสำเร็จ!');
+      await loadRounds();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
   };
 
-  const handleAutoGenYiki = () => {
+  const handleAutoGenYiki = async () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(6, 0, 0, 0);
+    const dateStr = tomorrow.toISOString().split('T')[0];
 
-    const newRounds: LotteryRound[] = [];
-    
-    for (let i = 0; i < 88; i++) {
-      const roundTime = new Date(tomorrow);
-      roundTime.setMinutes(i * 15);
-      
-      const closeTime = new Date(roundTime);
-      closeTime.setMinutes(closeTime.getMinutes() - 10);
-
-      newRounds.push({
-        id: `yiki-${Date.now()}-${i}`,
-        roundNumber: `YIKI-${roundTime.toISOString().split('T')[0]}-${i + 1}`,
-        lotteryType: 'YIKI',
-        drawDate: roundTime,
-        openTime: new Date(tomorrow),
-        closeTime: closeTime,
-        status: 'WAITING',
-        totalBets: 0,
-        totalTickets: 0
-      });
+    try {
+      await lotteryAPI.autoGenYiki(dateStr);
+      alert('สร้าง 88 รอบยี่กีสำเร็จ!');
+      await loadRounds();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
-
-    setRounds([...newRounds, ...rounds]);
-    alert(`สร้างยี่กี 88 รอบสำเร็จ! (${tomorrow.toLocaleDateString('th-TH')})`);
   };
 
-  const handleFetchResult = () => {
-    // Mock API fetch
-    setResultForm({
-      ...resultForm,
-      top3: '123',
-      toad3: '456',
-      top2: '45',
-      bottom2: '67',
-      run: '7'
-    });
-    alert('ดึงผลจาก API สำเร็จ! กรุณาตรวจสอบและยืนยัน');
-  };
-
-  const handleSubmitResult = () => {
+  const handleFetchResult = async () => {
     if (!selectedRound) return;
+    
+    try {
+      const result = await lotteryAPI.fetchResultFromAPI(selectedRound.id);
+      setResultForm({
+        top3: result.top3,
+        top3Confirm: result.top3,
+        toad3: result.toad3 || '',
+        top2: result.top2,
+        top2Confirm: result.top2,
+        bottom2: result.bottom2,
+        bottom2Confirm: result.bottom2,
+        run: result.run || ''
+      });
+      alert('ดึงผลจาก API สำเร็จ!');
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
 
-    // Validation
-    if (resultForm.top3 !== resultForm.top3Confirm) {
-      alert('3 ตัวบน ไม่ตรงกัน! กรุณากรอกใหม่');
-      return;
-    }
-    if (resultForm.top2 !== resultForm.top2Confirm) {
-      alert('2 ตัวบน ไม่ตรงกัน! กรุณากรอกใหม่');
-      return;
-    }
-    if (resultForm.bottom2 !== resultForm.bottom2Confirm) {
-      alert('2 ตัวล่าง ไม่ตรงกัน! กรุณากรอกใหม่');
-      return;
-    }
-
-    // Require 2 admin confirmations
+  const handleSubmitResult = async () => {
+    if (!selectedRound) return;
     if (resultConfirmedBy.length < 2) {
-      alert('ต้องมี Admin 2 คนยืนยันผล!');
+      alert('ต้องมีแอดมิน 2 คนยืนยัน!');
       return;
     }
 
-    // Update round
-    setRounds(rounds.map(r => {
-      if (r.id === selectedRound.id) {
-        return {
-          ...r,
-          status: 'ANNOUNCED',
-          resultTop3: resultForm.top3,
-          resultToad3: resultForm.toad3,
-          resultTop2: resultForm.top2,
-          resultBottom2: resultForm.bottom2,
-          resultRun: resultForm.run
-        };
-      }
-      return r;
-    }));
-
-    setShowResultModal(false);
-    setSelectedRound(null);
-    setResultForm({
-      top3: '', top3Confirm: '', toad3: '', top2: '', top2Confirm: '', 
-      bottom2: '', bottom2Confirm: '', run: ''
-    });
-    setResultConfirmedBy([]);
-    alert('บันทึกผลสำเร็จ! กำลังประมวลผลและจ่ายรางวัล...');
-  };
-
-  const handleProcessResults = (roundId: string) => {
-    const round = rounds.find(r => r.id === roundId);
-    if (!round) return;
-
-    if (round.status !== 'ANNOUNCED') {
-      alert('ต้องประกาศผลก่อน!');
+    if (resultForm.top3 !== resultForm.top3Confirm) {
+      alert('เลข 3 ตัวบนไม่ตรงกัน!');
       return;
     }
 
-    // Mock processing
-    setTimeout(() => {
-      setRounds(rounds.map(r => {
-        if (r.id === roundId) {
-          return {
-            ...r,
-            status: 'PAID',
-            totalPayout: Math.floor((r.totalBets || 0) * 0.85)
-          };
-        }
-        return r;
-      }));
-      alert('ประมวลผลและจ่ายรางวัลเสร็จสิ้น!');
-    }, 2000);
-  };
-
-  const handleRefundRound = (roundId: string) => {
-    const round = rounds.find(r => r.id === roundId);
-    if (!round) return;
-
-    const confirm = window.confirm(
-      `ยืนยันคืนเงินทั้งงวด?\n` +
-      `งวด: ${round.roundNumber}\n` +
-      `ยอดเงิน: ${round.totalBets?.toLocaleString()} บาท\n` +
-      `โพย: ${round.totalTickets} ใบ`
-    );
-
-    if (confirm) {
-      setRounds(rounds.map(r => {
-        if (r.id === roundId) {
-          return { ...r, status: 'PAID' };
-        }
-        return r;
-      }));
-      alert('คืนเงินทั้งงวดสำเร็จ!');
+    try {
+      await lotteryAPI.submitResult({
+        roundId: selectedRound.id,
+        top3: resultForm.top3,
+        toad3: resultForm.toad3,
+        top2: resultForm.top2,
+        bottom2: resultForm.bottom2,
+        run: resultForm.run,
+        confirmedBy: resultConfirmedBy
+      });
+      
+      setShowResultModal(false);
+      setSelectedRound(null);
+      setResultForm({ top3: '', top3Confirm: '', toad3: '', top2: '', top2Confirm: '', bottom2: '', bottom2Confirm: '', run: '' });
+      setResultConfirmedBy([]);
+      alert('บันทึกผลสำเร็จ!');
+      await loadRounds();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
-  const handleRollbackResult = (roundId: string) => {
-    const round = rounds.find(r => r.id === roundId);
-    if (!round) return;
-
-    const confirm = window.confirm(
-      `ยืนยันดึงเงินคืนและรอกรอกผลใหม่?\n` +
-      `งวด: ${round.roundNumber}\n` +
-      `ยอดจ่าย: ${round.totalPayout?.toLocaleString()} บาท`
-    );
-
-    if (confirm) {
-      setRounds(rounds.map(r => {
-        if (r.id === roundId) {
-          return {
-            ...r,
-            status: 'CLOSED',
-            resultTop3: undefined,
-            resultToad3: undefined,
-            resultTop2: undefined,
-            resultBottom2: undefined,
-            resultRun: undefined,
-            totalPayout: 0
-          };
-        }
-        return r;
-      }));
-      alert('Rollback สำเร็จ! กรุณากรอกผลใหม่');
+  const handleProcessResults = async (roundId: string) => {
+    if (!confirm('ยืนยันการประมวลผลและจ่ายเงิน?')) return;
+    
+    try {
+      const result = await lotteryAPI.processResults(roundId);
+      alert(`ประมวลผลสำเร็จ! จ่ายเงินรวม ฿${result.totalPayout.toLocaleString()}`);
+      await loadRounds();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
+
+  const handleRefundRound = async (roundId: string) => {
+    if (!confirm('ยืนยันการคืนเงินทั้งงวด?')) return;
+    
+    try {
+      await lotteryAPI.refundRound(roundId);
+      alert('คืนเงินสำเร็จ!');
+      await loadRounds();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  const handleRollbackResult = async (roundId: string) => {
+    if (!confirm('ยืนยันการ Rollback ผล? (จะดึงเงินคืนจากผู้ชนะ)')) return;
+    
+    try {
+      await lotteryAPI.rollbackResult(roundId);
+      alert('Rollback สำเร็จ!');
+      await loadRounds();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  if (loading && rounds.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-bold">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-3 md:p-6 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md">
+          <AlertCircle size={48} className="text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">เกิดข้อผิดพลาด</h2>
+          <p className="text-gray-600 text-center mb-4">{error}</p>
+          <button
+            onClick={() => loadRounds()}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-3 md:p-6">
